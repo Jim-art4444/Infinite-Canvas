@@ -2,21 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Learning Environment</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <style>
         :root {
-            --bg-dark: #000000; /* Pitch black background from v0.13 */
-            --bg-panel: #111111; /* Panel background from v0.13 */
-            --bg-column: #0A0A0A; /* Column background from v0.13 */
-            --border-color: #27272a; /* Border color from v0.13 */
-            --text-primary: #EAEAEA; /* Primary text from v0.13 */
-            --text-secondary: #a1a1aa; /* Secondary text from v0.13 */
-            --accent-blue: #388BFD; /* Kept from v0.11 for canvas selection */
-            --accent-red: #f43f5e; /* Red accent from v0.13 */
-            --accent-gradient: linear-gradient(90deg, #8b5cf6, #ec4899); /* Gradient from v0.13 */
+            --bg-dark: #000000;
+            --bg-panel: #111111;
+            --bg-column: #0A0A0A;
+            --border-color: #27272a;
+            --text-primary: #EAEAEA;
+            --text-secondary: #a1a1aa;
+            --accent-blue: #388BFD;
+            --accent-red: #f43f5e;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-gradient: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
+            --laser-color: #f43f5e;
         }
         ::selection { background: rgba(139, 92, 246, 0.4); }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -27,16 +30,18 @@
         html, body {
             margin: 0; padding: 0; overflow: hidden; height: 100%;
             font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-primary);
-            touch-action: none;
         }
         .main-container { display: flex; height: 100vh; }
         .main-content { flex-grow: 1; overflow: hidden; }
         .view { display: none; width: 100%; height: 100%; position: relative; }
         .view.active { display: flex; }
 
-        /* Canvas View Specifics (largely unchanged from v0.11) */
+        /* Canvas View */
         #canvas-view { background-color: var(--bg-dark); cursor: crosshair; flex-direction: column; }
-        #canvas { display: block; width: 100%; height: 100%; }
+        #canvas {
+            display: block; width: 100%; height: 100%;
+            touch-action: none;
+        }
         .canvas-top-bar {
             position: absolute; top: 0; left: 0; width: 100%;
             padding: 16px; display: flex; justify-content: space-between;
@@ -58,7 +63,7 @@
         #zoom-level-display { cursor: default; min-width: 50px; text-align: center; }
         #zoom-level-display:hover { background-color: transparent; color: var(--text-secondary); }
 
-        /* Radial Toolbar (unchanged from v0.11) */
+        /* Radial Toolbar */
         #radial-toolbar {
             position: absolute; top: 70px; left: 16px; width: 200px; height: 200px;
             pointer-events: auto; z-index: 100; user-select: none; transition: opacity 0.3s ease;
@@ -98,7 +103,7 @@
         }
         .wheel-button:hover .tooltip { visibility: visible; opacity: 1; }
         
-        /* Settings Popup (unchanged from v0.11) */
+        /* Settings Popup */
         #settings-popup {
             position: absolute; top: 60px; right: 16px; background-color: var(--bg-panel);
             border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;
@@ -111,8 +116,8 @@
         .setting-row input[type="range"] { width: 100%; margin: 0; }
         .setting-row .value-display { font-size: 12px; text-align: right; color: var(--text-primary); }
 
-        /* Board View Specifics - UPDATED from v0.13 */
-        .board-view { display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden; }
+        /* Board View */
+        .board-view { display: flex; flex-direction: column; width: 100%; height: 100%; }
         .board-header { display: flex; justify-content: center; align-items: center; padding: 24px; flex-shrink: 0; position: relative; text-align: center; }
         .board-header h1 { font-size: 28px; font-weight: 700; margin: 0; }
         .add-column-btn {
@@ -122,7 +127,10 @@
             cursor: pointer; transition: all 0.2s ease; font-weight: 500;
         }
         .add-column-btn:hover { background-color: #27272a; }
-        .board-columns { display: flex; gap: 16px; flex-grow: 1; padding: 0 24px 24px; overflow-x: auto; }
+        .board-columns {
+            display: flex; gap: 16px; flex-grow: 1; padding: 0 24px 24px;
+            overflow-x: auto; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+        }
         .board-column {
             background-color: var(--bg-column); border-radius: 12px; width: 320px;
             flex-shrink: 0; display: flex; flex-direction: column;
@@ -131,18 +139,46 @@
             box-sizing: border-box;
         }
         .column-header {
-            padding: 12px 8px 12px 16px; font-weight: 600; cursor: grab;
+            padding: 12px 8px; font-weight: 600; cursor: grab;
             position: relative; user-select: none; display: flex;
             justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--border-color);
         }
-        .column-title { flex-grow: 1; }
-        .column-actions { display: flex; align-items: center; gap: 4px; }
-        .column-actions .action-btn { color: var(--text-secondary); cursor: pointer; padding: 4px; border-radius: 6px; }
-        .column-actions .action-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
-        .column-actions .delete-column-btn:hover { background-color: rgba(244, 63, 94, 0.1); color: var(--accent-red); }
+        .column-title { flex-grow: 1; padding-left: 8px; }
+        .column-actions-menu { position: relative; }
+        .column-menu-btn {
+            background: none; border: none;
+            color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        .column-menu-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+        .column-menu-popup {
+            position: absolute; top: 100%; right: 0; background-color: var(--bg-panel);
+            border: 1px solid var(--border-color); border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 10;
+            display: flex; flex-direction: column; padding: 4px;
+            width: 120px;
+            transform: scale(0.95); opacity: 0;
+            transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+            pointer-events: none;
+        }
+        .column-menu-popup.visible { transform: scale(1); opacity: 1; pointer-events: auto; }
+        .column-menu-popup .action-btn {
+            background: none; border: none; color: var(--text-primary);
+            padding: 8px; text-align: left; font-size: 14px;
+            border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+        .column-menu-popup .action-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .column-menu-popup .delete-column-btn:hover {
+            background-image: var(--accent-gradient);
+            color: white;
+        }
+
         .column-header:active { cursor: grabbing; }
-        .column-cards { padding: 8px; flex-grow: 1; overflow-y: auto; min-height: 100px; }
+        .column-cards {
+            padding: 8px; flex-grow: 1; overflow-y: auto; min-height: 100px;
+            touch-action: pan-y; -webkit-overflow-scrolling: touch;
+        }
         .column-footer {
             padding: 12px; color: var(--text-secondary); cursor: pointer;
             transition: all 0.2s ease; text-align: center;
@@ -152,45 +188,45 @@
         .card {
             background-color: var(--bg-panel); border-radius: 8px; padding: 16px; margin-bottom: 8px;
             border: 1px solid var(--border-color); cursor: grab; position: relative;
-            transition: all 200ms ease-in-out;
+            transition: all 200ms ease-in-out; user-select: none;
         }
-        .card:hover { border-color: #8b5cf6; transform: translateY(-2px); }
-        .card:active { cursor: grabbing; border-color: #ec4899; }
+        .card:hover { border-color: var(--accent-purple); transform: translateY(-2px); }
+        .card:active { cursor: grabbing; border-color: var(--accent-pink); }
         .card .card-actions {
             position: absolute; top: 8px; right: 8px; display: none;
             background: var(--bg-panel); border-radius: 6px; overflow: hidden;
             border: 1px solid var(--border-color);
         }
-        .card:hover .card-actions { display: flex; align-items: center; }
+        .card:hover .card-actions, .card.show-actions .card-actions { 
+            display: flex; 
+            align-items: center; 
+        }
         .card .action-btn { color: var(--text-secondary); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
         .card .action-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
         .card .delete-card:hover { color: var(--accent-red); }
         .card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 500; }
         
-        /* Dragging and Animation Styles from v0.13 */
-        .is-dragging {
-            opacity: 1 !important;
-            transform: scale(1.03) translateY(-2px) !important;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+        /* Dragging and Animation Styles */
+        .is-dragging, .is-dragging-column {
+            opacity: 0 !important; /* Hide original element while dragging */
         }
-        .is-dragging-column {
-             opacity: 0.9 !important;
-             transform: rotate(1deg);
+        .ghost {
+            position: absolute; 
+            pointer-events: none; 
+            z-index: 1001;
+            transition: none;
+            transform: none !important; /* Explicitly prevent scaling/rotation */
+            opacity: 1;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3); /* Add shadow for affordance */
         }
-        .card-placeholder {
-            height: 3px; background: var(--accent-blue); border-radius: 2px;
-            margin: -4px 8px 4px 8px; border: none;
+        .card-placeholder, .column-placeholder {
+            border-radius: 12px; margin: 0 8px; flex-shrink: 0;
             transition: all 150ms ease-in-out;
         }
-        .column-placeholder {
-            background-color: rgba(139, 92, 246, 0.1);
-            border: 2px dashed #8b5cf6;
-            border-radius: 12px;
-            margin: 0 8px;
-            flex-shrink: 0;
-        }
+        .card-placeholder { height: 3px; background: var(--accent-blue); margin: -4px 8px 4px 8px; }
+        .column-placeholder { background-color: rgba(139, 92, 246, 0.1); border: 2px dashed var(--accent-purple); }
 
-        /* Custom Modal Styles from v0.13 */
+        /* Custom Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
@@ -213,7 +249,7 @@
             border-radius: 8px; padding: 12px; color: var(--text-primary); font-size: 16px;
             box-sizing: border-box;
         }
-        .modal-input:focus { border-color: #8b5cf6; outline: none; }
+        .modal-input:focus { border-color: var(--accent-purple); outline: none; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
         .modal-btn {
             border: none; border-radius: 8px; padding: 10px 20px;
@@ -247,12 +283,12 @@
                 </div>
 
                 <div id="settings-popup">
-                    <div class="setting-row">
+                    <div class="setting-row" id="pen-size-setting">
                         <label for="pen-size-slider">Pen Size</label>
                         <input type="range" id="pen-size-slider" min="1" max="100" value="8">
                         <span id="pen-size-value" class="value-display">8</span>
                     </div>
-                    <div class="setting-row">
+                    <div class="setting-row" id="opacity-setting">
                         <label for="opacity-slider">Opacity</label>
                         <input type="range" id="opacity-slider" min="0.1" max="1" step="0.05" value="1.0">
                         <span id="opacity-value" class="value-display">1.00</span>
@@ -271,7 +307,7 @@
         </main>
     </div>
 
-    <!-- Custom Modal HTML from v0.13 -->
+    <!-- Custom Modal HTML -->
     <div id="custom-modal" class="modal-overlay">
         <div class="modal-content">
             <h3 id="modal-title" class="modal-title">Modal Title</h3>
@@ -287,6 +323,7 @@
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => document.querySelectorAll(selector);
     const ACCENT_BLUE = getComputedStyle(document.documentElement).getPropertyValue('--accent-blue').trim();
+    const LASER_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--laser-color').trim();
     const lerp = (a, b, t) => a + (b - a) * t;
 
     // --- DATA & STATE MANAGEMENT ---
@@ -324,7 +361,7 @@
         else { currentOpenCardId = null; renderRevisionsBoard(); }
     }
     
-    // --- CUSTOM MODAL LOGIC (from v0.13) ---
+    // --- CUSTOM MODAL LOGIC ---
     const Modal = {
         _resolve: null,
         overlay: document.getElementById('custom-modal'),
@@ -359,24 +396,13 @@
             });
         },
         
-        _show() {
-            this.overlay.classList.add('visible');
-            this.overlay.onclick = this._handleClick.bind(this);
-        },
-
-        _hide() {
-            this.overlay.classList.remove('visible');
-            this.overlay.onclick = null;
-        },
-
+        _show() { this.overlay.classList.add('visible'); this.overlay.onclick = this._handleClick.bind(this); },
+        _hide() { this.overlay.classList.remove('visible'); this.overlay.onclick = null; },
         _handleClick(e) {
             const target = e.target;
             const button = target.closest('.modal-btn');
-
-            if (target === this.overlay) {
-                this._resolve(null);
-                this._hide();
-            } else if (button) {
+            if (target === this.overlay) { this._resolve(null); this._hide(); }
+            else if (button) {
                 const value = button.dataset.value;
                 if (value === 'null') this._resolve(null);
                 else if (value === 'submit') this._resolve(document.getElementById('modal-input').value);
@@ -386,7 +412,7 @@
         }
     };
 
-    // --- KANBAN BOARD LOGIC (UPDATED) ---
+    // --- KANBAN BOARD LOGIC ---
     function renderRevisionsBoard() {
         const view = $('#revisions-view');
         const scrollLeft = view.querySelector('.board-columns')?.scrollLeft;
@@ -399,12 +425,15 @@
                 </div>
                 <div class="board-columns">
                     ${appData.revisions.columns.map(col => `
-                        <div class="board-column" data-col-id="${col.id}" draggable="true">
+                        <div class="board-column" data-col-id="${col.id}">
                             <div class="column-header">
                                 <span class="column-title">${col.title}</span>
-                                <div class="column-actions">
-                                    <i data-feather="edit-2" class="action-btn rename-column-btn" title="Rename Column"></i>
-                                    <i data-feather="x" class="action-btn delete-column-btn" title="Delete Column"></i>
+                                <div class="column-actions-menu">
+                                    <button class="column-menu-btn"><i data-feather="more-horizontal"></i></button>
+                                    <div class="column-menu-popup">
+                                        <button class="action-btn rename-column-btn"><i data-feather="edit-2"></i>Rename</button>
+                                        <button class="action-btn delete-column-btn"><i data-feather="trash"></i>Delete</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="column-cards">${col.cards.map(renderCard).join('')}</div>
@@ -421,7 +450,7 @@
     }
 
     function renderCard(card) {
-        return `<div class="card" data-card-id="${card.id}" draggable="true">
+        return `<div class="card" data-card-id="${card.id}">
                     <h3>${card.title}</h3>
                     <div class="card-actions">
                         <div class="action-btn open-canvas" title="Open in Canvas"><i data-feather="arrow-up-right"></i></div>
@@ -435,8 +464,37 @@
         const view = $('#revisions-view');
         if (view.dataset.listenersAttached) return;
 
-        // Use async function to handle await for modals
+        let dragState = {};
+
         view.addEventListener('click', async (e) => {
+            // --- Menu & Button Visibility Logic ---
+            const menuBtn = e.target.closest('.column-menu-btn');
+            const cardElement = e.target.closest('.card');
+
+            if (menuBtn) {
+                const popup = menuBtn.nextElementSibling;
+                const isVisible = popup.classList.contains('visible');
+                document.querySelectorAll('.column-menu-popup').forEach(p => p.classList.remove('visible'));
+                if (!isVisible) popup.classList.add('visible');
+                return;
+            }
+
+            if (!e.target.closest('.column-menu-popup')) {
+                 document.querySelectorAll('.column-menu-popup').forEach(p => p.classList.remove('visible'));
+            }
+            
+            if (cardElement && !e.target.closest('.action-btn')) {
+                const isShowing = cardElement.classList.contains('show-actions');
+                $$('.card.show-actions').forEach(c => c.classList.remove('show-actions'));
+                if (!isShowing) cardElement.classList.add('show-actions');
+                return; 
+            }
+            
+            if (!cardElement) {
+                $$('.card.show-actions').forEach(c => c.classList.remove('show-actions'));
+            }
+
+            // --- Action Button Logic ---
             const addColumnBtn = e.target.closest('.add-column-btn');
             const deleteColumnBtn = e.target.closest('.delete-column-btn');
             const renameColumnBtn = e.target.closest('.rename-column-btn');
@@ -496,96 +554,138 @@
             }
         });
 
-        // UPDATED Drag and Drop logic from v0.13
-        let draggedElement = null, draggedItemType = null;
-        view.addEventListener('dragstart', e => {
-            if (e.target.matches('.card')) {
-                draggedItemType = 'card';
-                draggedElement = e.target;
-                setTimeout(() => draggedElement.classList.add('is-dragging'), 0);
-            } else if (e.target.matches('.board-column')) {
-                draggedItemType = 'column';
-                draggedElement = e.target;
-                setTimeout(() => draggedElement.classList.add('is-dragging-column'), 0);
+        const startDrag = (e) => {
+            if (e.target.closest('.action-btn') || e.target.closest('.column-menu-btn')) return;
+
+            const isTouchEvent = e.type === 'touchstart';
+            const point = isTouchEvent ? e.touches[0] : e;
+            
+            const targetCard = point.target.closest('.card');
+            const targetColumnHeader = point.target.closest('.column-header');
+            
+            if (!targetCard && !targetColumnHeader) return;
+            
+            dragState.element = targetCard || targetColumnHeader.closest('.board-column');
+            dragState.type = targetCard ? 'card' : 'column';
+
+            const startAction = () => {
+                const rect = dragState.element.getBoundingClientRect();
+                dragState.offsetX = point.clientX - rect.left;
+                dragState.offsetY = point.clientY - rect.top;
+
+                dragState.ghost = dragState.element.cloneNode(true);
+                dragState.ghost.classList.add('ghost');
+                dragState.ghost.style.width = `${rect.width}px`;
+                dragState.ghost.style.height = `${rect.height}px`;
+                document.body.appendChild(dragState.ghost);
+                moveDrag(e); 
+
+                dragState.element.classList.add(dragState.type === 'card' ? 'is-dragging' : 'is-dragging-column');
+
+                if (isTouchEvent) {
+                    window.addEventListener('touchmove', moveDrag, { passive: false });
+                    window.addEventListener('touchend', endDrag);
+                    window.addEventListener('touchcancel', endDrag);
+                } else {
+                    window.addEventListener('mousemove', moveDrag);
+                    window.addEventListener('mouseup', endDrag);
+                }
+            };
+
+            if (isTouchEvent) {
+                dragState.longPressTimeout = setTimeout(startAction, 200);
+            } else {
+                e.preventDefault();
+                startAction();
             }
-        });
-        view.addEventListener('dragend', () => {
-            draggedElement?.classList.remove('is-dragging', 'is-dragging-column');
-            $('.card-placeholder')?.remove();
-            $('.column-placeholder')?.remove();
-            draggedElement = null;
-            draggedItemType = null;
-        });
-        view.addEventListener('dragover', e => {
+        };
+
+        const moveDrag = (e) => {
+            if (!dragState.ghost) return;
             e.preventDefault();
-            if (draggedItemType === 'card') {
-                const cardList = e.target.closest('.column-cards');
+
+            const isTouchEvent = e.type.includes('touch');
+            const point = isTouchEvent ? e.touches[0] : e;
+
+            dragState.ghost.style.left = `${point.clientX - dragState.offsetX}px`;
+            dragState.ghost.style.top = `${point.clientY - dragState.offsetY}px`;
+
+            dragState.ghost.style.visibility = 'hidden';
+            const elementUnder = document.elementFromPoint(point.clientX, point.clientY);
+            dragState.ghost.style.visibility = 'visible';
+
+            $('.card-placeholder, .column-placeholder')?.remove();
+            if (dragState.type === 'card') {
+                const cardList = elementUnder?.closest('.column-cards');
                 if (cardList) {
-                    const placeholder = $('.card-placeholder') || document.createElement('div');
+                    const placeholder = document.createElement('div');
                     placeholder.className = 'card-placeholder';
-                    const afterElement = getDragAfterElement(cardList, e.clientY, '.card:not(.is-dragging)');
+                    const afterElement = getDragAfterElement(cardList, point.clientY, '.card:not(.is-dragging)');
                     cardList.insertBefore(placeholder, afterElement);
                 }
-            } else if (draggedItemType === 'column') {
-                const columnList = e.target.closest('.board-columns');
+            } else if (dragState.type === 'column') {
+                const columnList = elementUnder?.closest('.board-columns');
                 if (columnList) {
-                    const placeholder = $('.column-placeholder') || document.createElement('div');
-                    if (!placeholder.parentElement) {
-                        placeholder.className = 'column-placeholder';
-                        placeholder.style.width = `${draggedElement.offsetWidth}px`;
-                        placeholder.style.height = `${draggedElement.offsetHeight}px`;
-                    }
-                    const afterElement = getDragAfterElement(columnList, e.clientX, '.board-column:not(.is-dragging-column)');
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'column-placeholder';
+                    placeholder.style.width = `${dragState.element.offsetWidth}px`;
+                    placeholder.style.height = `${dragState.element.offsetHeight}px`;
+                    const afterElement = getDragAfterElement(columnList, point.clientX, '.board-column:not(.is-dragging-column)');
                     columnList.insertBefore(placeholder, afterElement);
                 }
             }
-        });
-        view.addEventListener('drop', e => {
-            e.preventDefault();
-            if (!draggedElement) return;
+        };
 
-            if (draggedItemType === 'card') {
-                const placeholder = $('.card-placeholder');
-                if (!placeholder) return;
-                const targetList = placeholder.closest('.column-cards');
-                if (!targetList) return;
+        const endDrag = () => {
+            clearTimeout(dragState.longPressTimeout);
+            if (!dragState.element) return;
 
-                const cardId = parseInt(draggedElement.dataset.cardId);
-                const targetColId = parseInt(targetList.closest('.board-column').dataset.colId);
-                const { card: cardData, fromColumn } = findCardById(cardId);
-                const targetCol = appData.revisions.columns.find(c => c.id === targetColId);
+            dragState.ghost?.remove();
 
-                if (cardData && targetCol) {
-                    // Remove from old column
-                    fromColumn.cards = fromColumn.cards.filter(c => c.id !== cardId);
-                    // Find new index and add to new column
-                    const newIndex = Array.from(placeholder.parentElement.children).indexOf(placeholder);
-                    targetCol.cards.splice(newIndex, 0, cardData);
+            const placeholder = $('.card-placeholder, .column-placeholder');
+            if (placeholder && placeholder.parentElement) {
+                if (dragState.type === 'card') {
+                    const cardId = parseInt(dragState.element.dataset.cardId);
+                    const targetColId = parseInt(placeholder.closest('.board-column').dataset.colId);
+                    const { card: cardData, fromColumn } = findCardById(cardId);
+                    const targetCol = appData.revisions.columns.find(c => c.id === targetColId);
+
+                    if (cardData && targetCol && fromColumn) {
+                        fromColumn.cards = fromColumn.cards.filter(c => c.id !== cardId);
+                        const newIndex = Array.from(placeholder.parentElement.children).indexOf(placeholder);
+                        targetCol.cards.splice(newIndex, 0, cardData);
+                    }
+                } else if (dragState.type === 'column') {
+                    const newOrderedColumns = [];
+                    const columnList = placeholder.parentElement;
+                    columnList.insertBefore(dragState.element, placeholder);
                     
-                    saveData();
-                    renderRevisionsBoard();
+                    columnList.querySelectorAll('.board-column').forEach(c => {
+                        const colId = parseInt(c.dataset.colId);
+                        const foundCol = appData.revisions.columns.find(col => col.id === colId);
+                        if (foundCol) newOrderedColumns.push(foundCol);
+                    });
+                    appData.revisions.columns = newOrderedColumns;
                 }
-                placeholder.remove();
-            } else if (draggedItemType === 'column') {
-                const placeholder = $('.column-placeholder');
-                if (!placeholder) return;
-                
-                const newOrderedColumns = [];
-                const columnList = placeholder.parentElement;
-                columnList.insertBefore(draggedElement, placeholder); // Visually move it for correct indexing
-
-                columnList.querySelectorAll('.board-column').forEach(c => {
-                    const colId = parseInt(c.dataset.colId);
-                    const foundCol = appData.revisions.columns.find(col => col.id === colId);
-                    if(foundCol) newOrderedColumns.push(foundCol);
-                });
-                appData.revisions.columns = newOrderedColumns;
-                
                 saveData();
-                renderRevisionsBoard();
-                placeholder.remove();
             }
-        });
+            
+            renderRevisionsBoard();
+
+            dragState = {};
+            window.removeEventListener('mousemove', moveDrag);
+            window.removeEventListener('mouseup', endDrag);
+            window.removeEventListener('touchmove', moveDrag, { passive: false });
+            window.removeEventListener('touchend', endDrag);
+            window.removeEventListener('touchcancel', endDrag);
+        };
+
+
+        view.addEventListener('mousedown', startDrag);
+        view.addEventListener('touchstart', startDrag, { passive: true });
+        view.addEventListener('touchend', () => clearTimeout(dragState.longPressTimeout));
+        view.addEventListener('touchcancel', () => clearTimeout(dragState.longPressTimeout));
+
         view.dataset.listenersAttached = 'true';
     }
 
@@ -597,7 +697,6 @@
         return { card: null, fromColumn: null };
     }
 
-    // Generic drag-after-element function from v0.13
     function getDragAfterElement(container, coordinate, selector) {
         const isHorizontal = container.classList.contains('board-columns');
         const draggableElements = [...container.querySelectorAll(selector)];
@@ -609,7 +708,7 @@
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // --- CANVAS LOGIC (Unchanged from v0.11) ---
+    // --- CANVAS LOGIC ---
     const canvas = $('#canvas');
     const ctx = canvas.getContext('2d');
     
@@ -620,6 +719,7 @@
         activeTool: 'pen',
         drawOptions: { color: '#FEF08A', lineWidth: 8, opacity: 1.0 },
         lassoPoints: [],
+        laserPoints: [],
         selectedStrokes: new Set(),
         selectionBox: null,
         resizeHandle: null,
@@ -628,8 +728,9 @@
     
     let viewState = {
         scale: 1, panOffset: { x: 0, y: 0 },
-        targetPanOffset: { x: 0, y: 0 },
+        targetScale: 1, targetPanOffset: { x: 0, y: 0 },
     };
+    let pinchState = { startDistance: null };
 
     function getActiveCard() {
         if (!currentOpenCardId) return null;
@@ -638,6 +739,7 @@
     
     function saveHistory() {
         const card = getActiveCard(); if (!card) return;
+        card.canvasState.strokes.forEach(s => delete s.isErasing);
         if (!card.canvasState.history) {
             card.canvasState.history = [JSON.parse(JSON.stringify(card.canvasState.strokes || []))];
             card.canvasState.historyIndex = 0;
@@ -672,57 +774,87 @@
 
     function getCanvasPos(e) {
         const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return {
-            x: (e.clientX - rect.left - viewState.panOffset.x) / viewState.scale,
-            y: (e.clientY - rect.top - viewState.panOffset.y) / viewState.scale
+            x: (clientX - rect.left - viewState.panOffset.x) / viewState.scale,
+            y: (clientY - rect.top - viewState.panOffset.y) / viewState.scale
         };
     }
     
     function drawCanvas() {
-        requestAnimationFrame(() => {
-            const card = getActiveCard(); if (!card) return;
-            const { strokes } = card.canvasState;
-            const { panOffset, scale } = viewState;
-            
+        const card = getActiveCard();
+        const { panOffset, scale } = viewState;
+        
+        ctx.save();
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dark').trim();
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.translate(panOffset.x, panOffset.y);
+        ctx.scale(scale, scale);
+
+        if (card) {
+            (card.canvasState.strokes || []).forEach(stroke => drawStroke(stroke));
+        }
+        if (canvasState.tempShape) drawStroke(canvasState.tempShape);
+        if (canvasState.laserPoints.length > 0) drawLaserTrail();
+        
+        ctx.globalAlpha = 1.0;
+
+        if (canvasState.isLassoing && canvasState.lassoPoints.length > 1) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 1 / scale;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(canvasState.lassoPoints[0].x, canvasState.lassoPoints[0].y);
+            canvasState.lassoPoints.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        if (canvasState.selectionBox) drawSelectionBox(canvasState.selectionBox, scale);
+        
+        ctx.restore();
+        
+        if (canvasState.activeTool === 'laser') {
+            const pos = canvasState.lastPos;
+            const screenPos = {
+                x: pos.x * scale + panOffset.x,
+                y: pos.y * scale + panOffset.y
+            };
             ctx.save();
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-dark').trim();
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.translate(panOffset.x, panOffset.y);
-            ctx.scale(scale, scale);
-
-            (strokes || []).forEach(stroke => drawStroke(stroke));
-            if (canvasState.tempShape) drawStroke(canvasState.tempShape);
-            ctx.globalAlpha = 1.0;
-
-            if (canvasState.isLassoing && canvasState.lassoPoints.length > 1) {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = 1 / scale;
-                ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                ctx.moveTo(canvasState.lassoPoints[0].x, canvasState.lassoPoints[0].y);
-                canvasState.lassoPoints.forEach(p => ctx.lineTo(p.x, p.y));
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            if (canvasState.selectionBox) drawSelectionBox(canvasState.selectionBox, scale);
-            
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = LASER_COLOR;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = LASER_COLOR;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(screenPos.x, screenPos.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
             ctx.restore();
-        });
+        }
     }
 
     function drawStroke(stroke) {
         if (!stroke || !stroke.type) return;
+        
+        ctx.save();
+        if (stroke.isErasing) {
+            ctx.globalAlpha = 0.3;
+            ctx.setLineDash([8, 8]);
+        } else {
+            ctx.globalAlpha = stroke.opacity;
+        }
+
         ctx.strokeStyle = stroke.color;
         ctx.lineWidth = stroke.lineWidth;
-        ctx.globalAlpha = stroke.opacity;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
         switch (stroke.type) {
             case 'pen':
             case 'highlighter':
-                if (stroke.points.length < 2) return;
+                if (stroke.points.length < 2) break;
                 ctx.beginPath();
                 ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
                 for (let i = 1; i < stroke.points.length - 2; i++) {
@@ -736,9 +868,7 @@
                 ctx.stroke();
                 break;
             case 'rectangle':
-                ctx.beginPath();
-                ctx.rect(stroke.x, stroke.y, stroke.width, stroke.height);
-                ctx.stroke();
+                ctx.strokeRect(stroke.x, stroke.y, stroke.width, stroke.height);
                 break;
             case 'circle':
                 ctx.beginPath();
@@ -754,30 +884,69 @@
                  ctx.stroke();
                  break;
         }
+        ctx.restore();
     }
 
-    function handleMouseDown(e) {
+    function drawLaserTrail() {
+        const now = Date.now();
+        const fadeDuration = 500;
+        
+        canvasState.laserPoints = canvasState.laserPoints.filter(p => now - p.time < fadeDuration);
+
+        if (canvasState.laserPoints.length < 2) return;
+        
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let i = 1; i < canvasState.laserPoints.length; i++) {
+            const p1 = canvasState.laserPoints[i-1];
+            const p2 = canvasState.laserPoints[i];
+            const age = now - p2.time;
+            const opacity = 1 - (age / fadeDuration);
+            
+            // Draw the wider, outer red line
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(244, 63, 94, ${opacity})`; // LASER_COLOR
+            ctx.lineWidth = 5 / viewState.scale;
+            ctx.stroke();
+
+            // Draw the thinner, inner white line on top
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`; // White
+            ctx.lineWidth = 2 / viewState.scale;
+            ctx.stroke();
+        }
+    }
+
+    function handleCanvasPointerDown(e) {
         const card = getActiveCard(); if (!card) return;
-        const pos = getCanvasPos(e);
-        canvasState.lastPos = pos;
+        canvasState.lastPos = getCanvasPos(e);
         canvasState.panStart = { x: e.clientX, y: e.clientY };
 
         if (e.button === 1 || (e.button === 0 && e.altKey)) {
-            e.preventDefault();
             canvasState.isPanning = true;
             canvas.style.cursor = 'grabbing';
             return;
         }
-
+        
         if (e.button === 0) {
+            if (canvasState.activeTool === 'laser') {
+                canvasState.isDrawing = true; // Use isDrawing to track the laser trail
+                canvasState.laserPoints.push({ x: canvasState.lastPos.x, y: canvasState.lastPos.y, time: Date.now() });
+                return;
+            }
             if (canvasState.selectionBox) {
-                const handle = getResizeHandleUnderCursor(pos, viewState.scale);
+                const handle = getResizeHandleUnderCursor(canvasState.lastPos, viewState.scale);
                 if (handle) {
                     canvasState.isResizingSelection = true;
                     canvasState.resizeHandle = handle;
                     return;
                 }
-                if (isPointInBox(pos, canvasState.selectionBox)) {
+                if (isPointInBox(canvasState.lastPos, canvasState.selectionBox)) {
                     canvasState.isMovingSelection = true;
                     return;
                 }
@@ -785,39 +954,47 @@
             
             canvasState.selectedStrokes.clear();
             canvasState.selectionBox = null;
-
             canvasState.isDrawing = true;
             const options = { id: Date.now(), ...canvasState.drawOptions };
             
             switch (canvasState.activeTool) {
                 case 'pen':
-                case 'highlighter':
-                    if (canvasState.activeTool === 'highlighter') options.opacity = 0.3;
-                    card.canvasState.strokes.push({ ...options, type: 'pen', points: [pos] });
+                    card.canvasState.strokes.push({ ...options, type: 'pen', points: [canvasState.lastPos] });
                     break;
-                case 'rectangle':
-                case 'circle':
-                case 'triangle':
-                    canvasState.tempShape = { ...options, type: canvasState.activeTool, x: pos.x, y: pos.y, width: 0, height: 0 };
+                case 'highlighter':
+                    options.opacity = 0.3;
+                    card.canvasState.strokes.push({ ...options, type: 'highlighter', points: [canvasState.lastPos] });
+                    break;
+                case 'rectangle': case 'circle': case 'triangle':
+                    canvasState.tempShape = { ...options, type: canvasState.activeTool, x: canvasState.lastPos.x, y: canvasState.lastPos.y, width: 0, height: 0 };
                     break;
                 case 'eraser':
-                    eraseAt(pos);
+                    eraseAt(canvasState.lastPos);
                     break;
                 case 'lasso':
                     canvasState.isLassoing = true;
-                    canvasState.lassoPoints = [pos];
+                    canvasState.lassoPoints = [canvasState.lastPos];
                     break;
             }
         }
         drawCanvas();
     }
 
-    function handleMouseMove(e) {
-        const card = getActiveCard(); if (!card) return;
+    function handleCanvasPointerMove(e) {
         const pos = getCanvasPos(e);
-        const dx = pos.x - canvasState.lastPos.x;
-        const dy = pos.y - canvasState.lastPos.y;
+        canvasState.lastPos = pos;
+        
+        if (canvasState.activeTool === 'laser') {
+            if (canvasState.isDrawing) {
+                canvasState.laserPoints.push({ x: pos.x, y: pos.y, time: Date.now() });
+            }
+            return;
+        }
 
+        if (!canvasState.isDrawing && !canvasState.isPanning && !canvasState.isLassoing && !canvasState.isMovingSelection && !canvasState.isResizingSelection) return;
+        
+        const card = getActiveCard(); if (!card) return;
+        
         if (canvasState.isPanning) {
             const dxPan = e.clientX - canvasState.panStart.x;
             const dyPan = e.clientY - canvasState.panStart.y;
@@ -826,18 +1003,19 @@
             viewState.targetPanOffset = { ...viewState.panOffset };
             canvasState.panStart = { x: e.clientX, y: e.clientY };
         } else if (canvasState.isResizingSelection) {
+            const dx = pos.x - getCanvasPos({clientX: e.clientX - e.movementX, clientY: e.clientY - e.movementY}).x;
+            const dy = pos.y - getCanvasPos({clientX: e.clientX - e.movementX, clientY: e.clientY - e.movementY}).y;
             resizeSelection(dx, dy);
         } else if (canvasState.isMovingSelection) {
+            const dx = pos.x - getCanvasPos({clientX: e.clientX - e.movementX, clientY: e.clientY - e.movementY}).x;
+            const dy = pos.y - getCanvasPos({clientX: e.clientX - e.movementX, clientY: e.clientY - e.movementY}).y;
             moveSelection(dx, dy);
         } else if (canvasState.isDrawing) {
             switch (canvasState.activeTool) {
-                case 'pen':
-                case 'highlighter':
+                case 'pen': case 'highlighter':
                     card.canvasState.strokes[card.canvasState.strokes.length - 1].points.push(pos);
                     break;
-                case 'rectangle':
-                case 'circle':
-                case 'triangle':
+                case 'rectangle': case 'circle': case 'triangle':
                     canvasState.tempShape.width = pos.x - canvasState.tempShape.x;
                     canvasState.tempShape.height = pos.y - canvasState.tempShape.y;
                     break;
@@ -847,19 +1025,25 @@
             }
         } else if (canvasState.isLassoing) {
             canvasState.lassoPoints.push(pos);
-        } else {
-            updateCursor(pos, viewState.scale);
         }
         
-        canvasState.lastPos = pos;
         drawCanvas();
     }
     
-    function handleMouseUp(e) {
+    function handleCanvasPointerUp() {
         const card = getActiveCard(); if (!card) return;
         
+        if (canvasState.activeTool === 'eraser') {
+            const strokesToKeep = card.canvasState.strokes.filter(s => !s.isErasing);
+            if (strokesToKeep.length < card.canvasState.strokes.length) {
+                card.canvasState.strokes = strokesToKeep;
+                saveHistory();
+            }
+        }
+        card.canvasState.strokes.forEach(s => delete s.isErasing);
+
         if (canvasState.isDrawing && canvasState.tempShape) {
-            if (Math.abs(canvasState.tempShape.width) > 2 && Math.abs(canvasState.tempShape.height) > 2) {
+            if (Math.abs(canvasState.tempShape.width) > 2 || Math.abs(canvasState.tempShape.height) > 2) {
                 card.canvasState.strokes.push(canvasState.tempShape);
             }
             canvasState.tempShape = null;
@@ -867,7 +1051,7 @@
 
         if (canvasState.isLassoing) selectStrokesInLasso();
         
-        if (canvasState.isDrawing || canvasState.isMovingSelection || canvasState.isResizingSelection || canvasState.activeTool === 'eraser') {
+        if (canvasState.isDrawing && canvasState.activeTool !== 'eraser' && canvasState.activeTool !== 'laser') {
             saveHistory();
         }
         
@@ -880,62 +1064,71 @@
         canvasState.isDrawing = canvasState.isPanning = canvasState.isLassoing = false;
         canvasState.isMovingSelection = canvasState.isResizingSelection = false;
         canvasState.resizeHandle = null;
-
-        updateCursor(getCanvasPos(e), viewState.scale);
+        updateCursor();
         drawCanvas();
     }
     
     function handleWheel(e) {
         e.preventDefault();
-        const card = getActiveCard(); if (!card) return;
+        if (canvasState.isDrawing || canvasState.isMovingSelection || canvasState.isResizingSelection) return;
 
         const rect = canvas.getBoundingClientRect();
-        const mousePos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const scrollDelta = e.deltaY;
         const zoomFactor = 1.1;
-        const oldScale = viewState.scale;
-        const newScale = e.deltaY < 0 ? oldScale * zoomFactor : oldScale / zoomFactor;
-        viewState.scale = Math.max(0.01, newScale);
 
-        const mouseBeforeZoom = {
-            x: (mousePos.x - viewState.panOffset.x) / oldScale,
-            y: (mousePos.y - viewState.panOffset.y) / oldScale
+        const newScale = scrollDelta < 0 
+            ? viewState.targetScale * zoomFactor 
+            : viewState.targetScale / zoomFactor;
+
+        const mousePoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        
+        const oldScale = viewState.targetScale;
+        const newTargetScale = Math.max(0.01, newScale);
+
+        const worldPosBeforeZoom = {
+            x: (mousePoint.x - viewState.targetPanOffset.x) / oldScale,
+            y: (mousePoint.y - viewState.targetPanOffset.y) / oldScale,
         };
 
-        viewState.panOffset.x = mousePos.x - mouseBeforeZoom.x * viewState.scale;
-        viewState.panOffset.y = mousePos.y - mouseBeforeZoom.y * viewState.scale;
-        viewState.targetPanOffset = { ...viewState.panOffset };
-        
-        $('#zoom-level-display').textContent = `${Math.round(viewState.scale * 100)}%`;
-        drawCanvas();
+        const newTargetPan = {
+            x: mousePoint.x - worldPosBeforeZoom.x * newTargetScale,
+            y: mousePoint.y - worldPosBeforeZoom.y * newTargetScale,
+        };
+
+        viewState.targetScale = newTargetScale;
+        viewState.targetPanOffset = newTargetPan;
     }
 
     function eraseAt(pos) {
         const card = getActiveCard(); if (!card) return;
-        const eraseRadius = (canvasState.drawOptions.lineWidth / 2) / viewState.scale;
+        const eraseRadius = 10 / viewState.scale;
         let changed = false;
-        card.canvasState.strokes = card.canvasState.strokes.filter(stroke => {
+        card.canvasState.strokes.forEach(stroke => {
             const box = getStrokeBounds(stroke);
             if (pos.x < box.minX - eraseRadius || pos.x > box.maxX + eraseRadius ||
                 pos.y < box.minY - eraseRadius || pos.y > box.maxY + eraseRadius) {
-                return true;
+                return;
             }
-            if (stroke.type === 'pen' || stroke.type === 'highlighter') {
-                const toErase = stroke.points.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < eraseRadius);
-                if (toErase) changed = true;
-                return !toErase;
+            
+            const wasErasing = stroke.isErasing;
+            stroke.isErasing = false;
+            if (stroke.points) {
+                if (stroke.points.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < eraseRadius)) {
+                    stroke.isErasing = true;
+                }
+            } else {
+                if (isPointInBox(pos, {x: box.minX, y: box.minY, width: box.maxX - box.minX, height: box.maxY - box.minY})) {
+                    stroke.isErasing = true;
+                }
             }
-            if (isPointInBox(pos, {x: box.minX, y: box.minY, width: box.maxX - box.minX, height: box.maxY - box.minY})) {
-                 changed = true;
-                 return false;
-            }
-            return true;
+            if (wasErasing !== stroke.isErasing) changed = true;
         });
         if (changed) drawCanvas();
     }
 
     function getStrokeBounds(stroke) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        if (stroke.type === 'pen' || stroke.type === 'highlighter') {
+        if (stroke.points) {
             stroke.points.forEach(p => {
                 minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
                 maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
@@ -962,8 +1155,16 @@
         const card = getActiveCard(); if (!card) return;
         canvasState.selectedStrokes.clear();
         card.canvasState.strokes.forEach(stroke => {
-            if (stroke.points.some(p => isPointInPolygon(p, canvasState.lassoPoints))) {
-                canvasState.selectedStrokes.add(stroke.id);
+            if (stroke.points) {
+                if (stroke.points.some(p => isPointInPolygon(p, canvasState.lassoPoints))) {
+                    canvasState.selectedStrokes.add(stroke.id);
+                }
+            } else {
+                const b = getStrokeBounds(stroke);
+                const corners = [{x:b.minX, y:b.minY}, {x:b.maxX, y:b.minY}, {x:b.maxX, y:b.maxY}, {x:b.minX, y:b.maxY}];
+                if (corners.some(p => isPointInPolygon(p, canvasState.lassoPoints))) {
+                    canvasState.selectedStrokes.add(stroke.id);
+                }
             }
         });
         canvasState.lassoPoints = [];
@@ -1016,12 +1217,9 @@
         );
     }
     function isPointInBox(point, box) { return point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height; }
-    function updateCursor(pos, scale) {
-        const handle = getResizeHandleUnderCursor(pos, scale);
-        if (handle) {
-            canvas.style.cursor = handle.cursor;
-        } else if (canvasState.selectionBox && isPointInBox(pos, canvasState.selectionBox)) {
-            canvas.style.cursor = 'move';
+    function updateCursor() {
+        if (canvasState.activeTool === 'laser') {
+            canvas.style.cursor = 'none';
         } else {
             canvas.style.cursor = 'crosshair';
         }
@@ -1084,16 +1282,17 @@
             { id: 'highlighter', icon: 'edit', name: 'Highlighter' },
             { id: 'eraser', icon: 'trash', name: 'Eraser' },
             { id: 'lasso', icon: 'crop', name: 'Lasso' },
-            { id: 'lost', icon: 'compass', name: 'Find Content' },
+            { id: 'center-content', icon: 'compass', name: 'Find Content' },
             { id: 'undo', icon: 'corner-up-left', name: 'Undo' },
             { id: 'redo', icon: 'corner-up-right', name: 'Redo' },
+            { id: 'laser', icon: 'radio', name: 'Laser Pointer' },
         ];
         const shapeTools = [
             { id: 'rectangle', icon: 'square', name: 'Rectangle' },
             { id: 'circle', icon: 'circle', name: 'Circle' },
             { id: 'triangle', icon: 'triangle', name: 'Triangle' },
         ];
-        const colors = ['#ffffff', '#FEF08A', '#67E8F9', '#86EFAC', '#FCA5A5'];
+        const colors = ['#ffffff', '#FEF08A', '#67E8F9', '#86EFAC', '#FCA5A5', '#c4b5fd'];
         let currentColorIndex = 1;
 
         radialToolbar.querySelectorAll('.wheel-button').forEach(b => b.remove());
@@ -1113,35 +1312,22 @@
                 e.stopPropagation();
                 if (tool.id === 'undo') { undo(); return; }
                 if (tool.id === 'redo') { redo(); return; }
-                if (tool.id === 'lost') {
-                    const card = getActiveCard();
-                    if (card && card.canvasState.strokes.length > 0) {
-                        const bounds = card.canvasState.strokes.reduce((acc, s) => {
-                            const b = getStrokeBounds(s);
-                            return {
-                                minX: Math.min(acc.minX, b.minX), minY: Math.min(acc.minY, b.minY),
-                                maxX: Math.max(acc.maxX, b.maxX), maxY: Math.max(acc.maxY, b.maxY),
-                            }
-                        }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
-                        
-                        const contentWidth = bounds.maxX - bounds.minX;
-                        const contentHeight = bounds.maxY - bounds.minY;
-                        const contentCenterX = bounds.minX + contentWidth / 2;
-                        const contentCenterY = bounds.minY + contentHeight / 2;
-
-                        viewState.scale = 1.0;
-                        viewState.panOffset.x = canvas.width / 2 - contentCenterX * viewState.scale;
-                        viewState.panOffset.y = canvas.height / 2 - contentCenterY * viewState.scale;
-                        viewState.targetPanOffset = { ...viewState.panOffset };
-                        drawCanvas();
-                    }
+                if (tool.id === 'center-content') {
+                    centerCanvasContent();
                     return;
                 }
 
                 canvasState.activeTool = tool.id;
                 radialToolbar.querySelectorAll('.wheel-button').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                updateCursor({x:0,y:0}, 1);
+                updateCursor();
+                
+                const penSizeSetting = $('#pen-size-setting');
+                if (tool.id === 'eraser') {
+                    penSizeSetting.style.display = 'none';
+                } else {
+                    penSizeSetting.style.display = 'flex';
+                }
             });
             radialToolbar.appendChild(btn);
         });
@@ -1161,7 +1347,8 @@
                  canvasState.activeTool = tool.id;
                  radialToolbar.querySelectorAll('.wheel-button').forEach(b => b.classList.remove('active'));
                  btn.classList.add('active');
-                 updateCursor({x:0,y:0}, 1);
+                 updateCursor();
+                 $('#pen-size-setting').style.display = 'flex';
             });
             radialToolbar.appendChild(btn);
         });
@@ -1180,17 +1367,51 @@
     }
     
     function animateView() {
+        let needsRedraw = false;
+        
         const panDist = Math.hypot(viewState.targetPanOffset.x - viewState.panOffset.x, viewState.targetPanOffset.y - viewState.panOffset.y);
-        if (panDist > 0.5) {
-            viewState.panOffset.x = lerp(viewState.panOffset.x, viewState.targetPanOffset.x, 0.2);
-            viewState.panOffset.y = lerp(viewState.panOffset.y, viewState.targetPanOffset.y, 0.2);
-            drawCanvas();
-        } else if (panDist > 0) {
-            viewState.panOffset = {...viewState.targetPanOffset};
-            drawCanvas();
+        const scaleDist = Math.abs(viewState.targetScale - viewState.scale);
+
+        if (panDist > 0.1 || scaleDist > 0.001) {
+            viewState.panOffset.x = lerp(viewState.panOffset.x, viewState.targetPanOffset.x, 0.25);
+            viewState.panOffset.y = lerp(viewState.panOffset.y, viewState.targetPanOffset.y, 0.25);
+            viewState.scale = lerp(viewState.scale, viewState.targetScale, 0.25);
+            $('#zoom-level-display').textContent = `${Math.round(viewState.scale * 100)}%`;
+            needsRedraw = true;
+        }
+
+        if (canvasState.laserPoints.length > 0 || canvasState.activeTool === 'laser') {
+            needsRedraw = true;
         }
         
+        if (needsRedraw) drawCanvas();
         requestAnimationFrame(animateView);
+    }
+    
+    function centerCanvasContent() {
+        const card = getActiveCard();
+        if (card && card.canvasState.strokes.length > 0) {
+            const bounds = card.canvasState.strokes.reduce((acc, s) => {
+                const b = getStrokeBounds(s);
+                return {
+                    minX: Math.min(acc.minX, b.minX), minY: Math.min(acc.minY, b.minY),
+                    maxX: Math.max(acc.maxX, b.maxX), maxY: Math.max(acc.maxY, b.maxY),
+                }
+            }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+            
+            const contentWidth = bounds.maxX - bounds.minX;
+            const contentHeight = bounds.maxY - bounds.minY;
+            if (contentWidth < 1 || contentHeight < 1) return;
+
+            const scaleX = canvas.width / (contentWidth + 100);
+            const scaleY = canvas.height / (contentHeight + 100);
+            viewState.targetScale = Math.min(scaleX, scaleY, 2);
+
+            const contentCenterX = bounds.minX + contentWidth / 2;
+            const contentCenterY = bounds.minY + contentHeight / 2;
+            viewState.targetPanOffset.x = canvas.width / 2 - contentCenterX * viewState.targetScale;
+            viewState.targetPanOffset.y = canvas.height / 2 - contentCenterY * viewState.targetScale;
+        }
     }
 
     function initCanvas() {
@@ -1198,27 +1419,71 @@
         canvas.width = container.clientWidth; canvas.height = container.clientHeight;
         
         if (!canvas.dataset.initialized) {
-            canvas.addEventListener('mousedown', handleMouseDown);
-            canvas.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('mouseup', handleCanvasPointerUp); // Global mouseup
+            canvas.addEventListener('mousedown', handleCanvasPointerDown);
+            window.addEventListener('mousemove', handleCanvasPointerMove);
+            canvas.addEventListener('mouseleave', () => {
+                canvasState.laserPoints = [];
+            });
             canvas.addEventListener('contextmenu', e => e.preventDefault());
             canvas.addEventListener('wheel', handleWheel, { passive: false });
             
             canvas.addEventListener('touchstart', e => {
                 e.preventDefault();
-                if (e.touches.length === 1) {
-                    canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }));
+                if (e.touches.length === 2) {
+                    canvasState.isPanning = true;
+                    pinchState.startDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                } else if (e.touches.length === 1) {
+                    const touchEvent = new MouseEvent('mousedown', {
+                        clientX: e.touches[0].clientX,
+                        clientY: e.touches[0].clientY,
+                        button: 0
+                    });
+                    handleCanvasPointerDown(touchEvent);
                 }
             }, { passive: false });
+
             canvas.addEventListener('touchmove', e => {
                  e.preventDefault();
-                 if (e.touches.length === 1) {
-                    canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }));
+                 if (e.touches.length === 2 && pinchState.startDistance) {
+                    const newPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const rect = canvas.getBoundingClientRect();
+                    const touchCenter = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top };
+                    
+                    const scaleMultiplier = newPinchDistance / pinchState.startDistance;
+                    const newScale = viewState.targetScale * scaleMultiplier;
+                    
+                    const oldScale = viewState.targetScale;
+                    const newTargetScale = Math.max(0.01, newScale);
+                    const worldPosBeforeZoom = {
+                        x: (touchCenter.x - viewState.targetPanOffset.x) / oldScale,
+                        y: (touchCenter.y - viewState.targetPanOffset.y) / oldScale,
+                    };
+                    const newTargetPan = {
+                        x: touchCenter.x - worldPosBeforeZoom.x * newTargetScale,
+                        y: touchCenter.y - worldPosBeforeZoom.y * newTargetScale,
+                    };
+                    viewState.targetScale = newTargetScale;
+                    viewState.targetPanOffset = newTargetPan;
+                    
+                    pinchState.startDistance = newPinchDistance;
+                 } else if (e.touches.length === 1) {
+                    const touchEvent = new MouseEvent('mousemove', {
+                        clientX: e.touches[0].clientX,
+                        clientY: e.touches[0].clientY
+                    });
+                    handleCanvasPointerMove(touchEvent);
                  }
             }, { passive: false });
+
             canvas.addEventListener('touchend', e => {
                  e.preventDefault();
-                 canvas.dispatchEvent(new MouseEvent('mouseup', {}));
+                 if (e.touches.length < 2) {
+                    pinchState.startDistance = null;
+                 }
+                 if (e.touches.length === 0) {
+                    handleCanvasPointerUp();
+                 }
             }, { passive: false });
 
             $('#back-to-revisions-btn').addEventListener('click', () => switchView('revisions'));
@@ -1228,8 +1493,9 @@
                 $('#settings-popup').classList.toggle('visible');
             });
             document.addEventListener('click', (e) => {
-                if (!$('#settings-popup').contains(e.target) && e.target.id !== 'settings-btn' && !e.target.closest('#settings-btn')) {
-                    $('#settings-popup').classList.remove('visible');
+                const popup = $('#settings-popup');
+                if (popup.classList.contains('visible') && !popup.contains(e.target) && !e.target.closest('#settings-btn')) {
+                    popup.classList.remove('visible');
                 }
             });
             $('#pen-size-slider').addEventListener('input', (e) => {
@@ -1244,16 +1510,21 @@
             $$('.zoom-btn').forEach(btn => btn.addEventListener('click', () => {
                  const action = btn.dataset.zoom;
                  const zoomFactor = 1.4;
-                 const oldScale = viewState.scale;
-                 viewState.scale = action === 'in' ? oldScale * zoomFactor : oldScale / zoomFactor;
-                 
+                 const newScale = action === 'in' ? viewState.targetScale * zoomFactor : viewState.targetScale / zoomFactor;
                  const center = { x: canvas.width / 2, y: canvas.height / 2 };
-                 viewState.panOffset.x = center.x - (center.x - viewState.panOffset.x) * (viewState.scale / oldScale);
-                 viewState.panOffset.y = center.y - (center.y - viewState.panOffset.y) * (viewState.scale / oldScale);
-                 viewState.targetPanOffset = { ...viewState.panOffset };
                  
-                 $('#zoom-level-display').textContent = `${Math.round(viewState.scale * 100)}%`;
-                 drawCanvas();
+                 const oldScale = viewState.targetScale;
+                 const newTargetScale = Math.max(0.01, newScale);
+                 const worldPosBeforeZoom = {
+                     x: (center.x - viewState.targetPanOffset.x) / oldScale,
+                     y: (center.y - viewState.targetPanOffset.y) / oldScale,
+                 };
+                 const newTargetPan = {
+                     x: center.x - worldPosBeforeZoom.x * newTargetScale,
+                     y: center.y - worldPosBeforeZoom.y * newTargetScale,
+                 };
+                 viewState.targetScale = newTargetScale;
+                 viewState.targetPanOffset = newTargetPan;
             }));
 
             window.addEventListener('resize', () => {
@@ -1271,6 +1542,7 @@
         if (card) {
             viewState.scale = card.canvasState.scale || 1;
             viewState.panOffset = card.canvasState.panOffset || { x: 0, y: 0 };
+            viewState.targetScale = viewState.scale;
             viewState.targetPanOffset = { ...viewState.panOffset };
             $('#zoom-level-display').textContent = `${Math.round(viewState.scale * 100)}%`;
         }
